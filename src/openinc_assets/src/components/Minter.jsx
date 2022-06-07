@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { openinc } from "../../../declarations/openinc";
 import Item from "./Item";
+import Loader from "./Loader";
 
 function Minter() {
   const [nftID, setNftID] = useState("");
@@ -20,7 +21,7 @@ function Minter() {
     const imageByteData = [...new Uint8Array(await image.arrayBuffer())];
 
     const newNFTId = await openinc.mint(name, imageByteData);
-    setNftID(newNFTId.toText());
+    setNftID(newNFTId);
     setIsMinting(false);
   };
 
@@ -57,12 +58,7 @@ function Minter() {
             </div>
           </div>
           {isMinting ? (
-            <div className="lds-ellipsis">
-              <div></div>
-              <div></div>
-              <div></div>
-              <div></div>
-            </div>
+            <Loader />
           ) : (
             <div className="form-ButtonBase-root form-Chip-root makeStyles-chipBlue-108 form-Chip-clickable">
               <span

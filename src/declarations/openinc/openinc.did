@@ -1,3 +1,7 @@
 service : {
+  getCanisterID: () -> (principal) query;
+  getNFTByOwner: (principal) -> (vec principal) query;
+  isListed: (principal) -> (bool) query;
+  listItem: (principal, nat) -> (text);
   mint: (text, vec nat8) -> (principal);
 }
