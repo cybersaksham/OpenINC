@@ -4,6 +4,10 @@
       "main": "src/openinc/main.mo",
       "type": "motoko"
     },
+    "nft": {
+      "main": "src/nft/main.mo",
+      "type": "motoko"
+    },
     "openinc_assets": {
       "dependencies": ["openinc"],
       "frontend": {
