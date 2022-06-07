@@ -30,8 +30,9 @@ function Item({ id }) {
   };
 
   useEffect(() => {
+    console.log(id);
     loadNFT();
-  }, []);
+  }, [id]);
 
   return (
     <div className="disGrid-item">
