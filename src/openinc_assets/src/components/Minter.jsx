@@ -79,7 +79,7 @@ function Minter() {
           Minted!
         </h3>
         <div className="horizontal-center">
-          <Item id={nftID} />
+          <Item id={nftID} isCollection={true} />
         </div>
       </div>
     );

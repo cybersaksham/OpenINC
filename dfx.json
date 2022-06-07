@@ -8,6 +8,10 @@
       "main": "src/nft/main.mo",
       "type": "motoko"
     },
+    "token": {
+      "main": "src/token/main.mo",
+      "type": "motoko"
+    },
     "openinc_assets": {
       "dependencies": ["openinc"],
       "frontend": {

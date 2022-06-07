@@ -1,12 +1,16 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import { Actor, HttpAgent } from "@dfinity/agent";
+import { Principal } from "@dfinity/principal";
 import { idlFactory } from "../../../declarations/nft";
+import { idlFactory as tokenIdl } from "../../../declarations/token";
 import { openinc } from "../../../declarations/openinc";
+import CURRENT_USER_ID from "../index";
 import Button from "./Button";
 import Loader from "./Loader";
+import PriceLabel from "./PriceLabel";
 
-function Item({ id }) {
+function Item({ id, isCollection }) {
   const [name, setName] = useState("");
   const [owner, setOwner] = useState("");
   const [image, setImage] = useState(null);
@@ -14,7 +18,14 @@ function Item({ id }) {
   const [button, setButton] = useState();
   const [priceInput, setPriceInput] = useState();
   const [isLoading, setIsLoading] = useState(false);
+  const [shouldDisplay, setShouldDisplay] = useState(true);
   const [sellStatus, setSellStatus] = useState();
+  const [priceLabel, setPriceLabel] = useState();
+
+  const fetchPrice = async () => {
+    const priceFetched = await openinc.getPrice(id);
+    setPriceLabel(<PriceLabel price={String(priceFetched)} key={id} />);
+  };
 
   const host = "http://localhost:8080";
   const agent = new HttpAgent({ host });
@@ -30,6 +41,7 @@ function Item({ id }) {
     });
 
     setName(await NFTActor.getName());
+    setOwner((await NFTActor.getOwner()).toText());
 
     const imageData = await NFTActor.getAsset();
     const imgContent = new Uint8Array(imageData);
@@ -39,13 +51,42 @@ function Item({ id }) {
 
     const isListed = await openinc.isListed(id);
 
-    if (isListed) {
-      setOwner("OpenINC");
-      setBlur({ filter: "blur(5px)" });
-      setSellStatus("Listed");
+    if (isCollection) {
+      if (isListed) {
+        setOwner("OpenINC");
+        setBlur({ filter: "blur(5px)" });
+        setSellStatus("Listed");
+      } else {
+        setButton(<Button handleClick={handleSell} text="Sell" />);
+      }
     } else {
-      setOwner((await NFTActor.getOwner()).toText());
-      setButton(<Button handleClick={handleSell} text="Sell" />);
+      const originalOwner = await openinc.getOriginalOwner(id);
+      if (originalOwner.toText() != CURRENT_USER_ID.toText()) {
+        setButton(<Button handleClick={handleBuy} text="Buy" />);
+      }
+    }
+  };
+
+  const handleBuy = async () => {
+    setIsLoading(true);
+
+    const tokenActor = await Actor.createActor(tokenIdl, {
+      agent,
+      canisterId: Principal.fromText("rno2w-sqaaa-aaaaa-aaacq-cai"),
+    });
+
+    const sellerId = await openinc.getOriginalOwner(id);
+    const itemPrice = await openinc.getPrice(id);
+
+    const transferResult = await tokenActor.transfer(itemPrice, sellerId);
+
+    if (transferResult == "Success") {
+      const purchaseResult = await openinc.completePurchase(
+        id,
+        CURRENT_USER_ID
+      );
+      setIsLoading(false);
+      setShouldDisplay(false);
     }
   };
 
@@ -67,14 +108,13 @@ function Item({ id }) {
     setBlur({ filter: "blur(5px)" });
     setIsLoading(true);
     let result = await openinc.listItem(id, Number(price));
-    console.log("Listing: " + result);
     if (result == "Success") {
       const OpenINCID = await openinc.getCanisterID();
       const transferResult = await NFTActor.transfer(OpenINCID);
-      console.log("Transfer: " + transferResult);
       setPriceInput();
       setButton();
       setIsLoading(false);
+      setPriceLabel(<PriceLabel price={price} key={id} />);
       setOwner("OpenINC");
       setSellStatus("Listed");
     }
@@ -83,11 +123,15 @@ function Item({ id }) {
   useEffect(() => {
     if (id) {
       loadNFT();
+      fetchPrice();
     }
   }, [id]);
 
   return (
-    <div className="disGrid-item">
+    <div
+      style={{ display: shouldDisplay ? "inline" : "none" }}
+      className="disGrid-item"
+    >
       <div className="disPaper-root disCard-root makeStyles-root-17 disPaper-elevation1 disPaper-rounded">
         <img
           className="disCardMedia-root makeStyles-image-19 disCardMedia-media disCardMedia-img"
@@ -95,6 +139,7 @@ function Item({ id }) {
           style={blur}
         />
         <div className="disCardContent-root">
+          {priceLabel}
           <h2 className="disTypography-root makeStyles-bodyText-24 disTypography-h5 disTypography-gutterBottom">
             {name}
             <span className="purple-text">{sellStatus}</span>
